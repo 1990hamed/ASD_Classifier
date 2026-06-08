@@ -24,3 +24,6 @@ logs/
 
 # Ruff
 .ruff_cache
+
+# Claude Folder
+.claude/
