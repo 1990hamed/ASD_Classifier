@@ -181,9 +181,11 @@ def mutate(ind: list) -> tuple[list]:
 
     if new_fc_layers > original_layers:
         for _ in range(new_fc_layers - original_layers):
-            layer_type = random.choice(list(range(*fc_ranges["layer_type"][:2])) + [fc_ranges["layer_type"][1]])
+            low, high = fc_ranges["layer_type"]
+            layer_type = random.randint(low, high)
             pair = random.choice(fc_ranges["num_neurons"]())
-            dropout = random.randrange(*fc_ranges["dropout"])
+            d_low, d_high, d_step = fc_ranges["dropout"]
+            dropout = random.choice(range(d_low, d_high + 1, d_step))
             mutated[1].append([layer_type, pair[1], dropout])
     elif new_fc_layers < original_layers:
         mutated[1] = mutated[1][:new_fc_layers]
@@ -317,6 +319,13 @@ def run_evolution(
         gen = 0
         stats = tools.Statistics(key=get_fitness_key)
         stats.register("Best Fitness", np.max)
+
+        # Evaluate the initial population so selection has valid fitnesses.
+        print("\n─── EVALUATING INITIAL POPULATION ───")
+        invalid = [ind for ind in pop if not ind.fitness.valid]
+        for ind, fit in zip(invalid, toolbox.map(toolbox.evaluate, invalid)):
+            ind.fitness.values = fit
+        hof.update(pop)
 
     while gen < ngen:
         gen += 1

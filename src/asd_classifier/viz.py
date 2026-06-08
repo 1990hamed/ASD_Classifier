@@ -90,7 +90,9 @@ def plot_training_history(history: dict, save_path: Path | None = None) -> None:
     plt.tight_layout()
     if save_path:
         plt.savefig(save_path)
-    plt.show()
+        plt.close()
+    else:
+        plt.show()
 
 
 def display_classification_report_table(
@@ -125,13 +127,21 @@ def display_classification_report_table(
     plt.grid(False)
     if save_path:
         plt.savefig(save_path)
-    plt.show()
+        plt.close()
+    else:
+        plt.show()
 
 
-def evaluation(model, trainer, num_classes: int = NUM_CLASSES) -> tuple[float, float]:
+def evaluation(
+    model,
+    trainer,
+    num_classes: int = NUM_CLASSES,
+    save_dir: Path | None = None,
+) -> tuple[float, float]:
     """Run the test split, display a confusion matrix and classification report table.
 
-    Returns ``(accuracy, loss)`` from the test evaluation.
+    If *save_dir* is given, figures are written there instead of shown
+    (suitable for headless CLI runs).  Returns ``(accuracy, loss)``.
     """
     eval_dict = trainer.test()
 
@@ -147,8 +157,16 @@ def evaluation(model, trainer, num_classes: int = NUM_CLASSES) -> tuple[float, f
     plt.title("Confusion Matrix")
     plt.tight_layout()
     plt.grid(False)
-    plt.show()
+    if save_dir:
+        plt.savefig(save_dir / "confusion_matrix.png")
+        plt.close()
+    else:
+        plt.show()
 
-    display_classification_report_table(report, num_classes)
+    display_classification_report_table(
+        report,
+        num_classes,
+        save_path=(save_dir / "classification_report.png") if save_dir else None,
+    )
 
     return eval_dict["accuracy"], eval_dict["loss"]

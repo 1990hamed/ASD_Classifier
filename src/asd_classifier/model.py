@@ -103,7 +103,15 @@ class GoogleNet(nn.Module):
 
         self.fc_genes = individual[1]
 
-        self.base = models.googlenet(pretrained=True, aux_logits=True)
+        # Pretrained GoogLeNet weights require aux_logits=True at load time, so
+        # load with the aux heads then disable them: drop the aux classifiers and
+        # flip the flag so forward() always returns a single feature tensor.
+        self.base = models.googlenet(
+            weights=models.GoogLeNet_Weights.IMAGENET1K_V1, aux_logits=True
+        )
+        self.base.aux_logits = False
+        self.base.aux1 = None
+        self.base.aux2 = None
         self.base.fc = nn.Identity()
         for param in self.base.parameters():
             param.requires_grad = False

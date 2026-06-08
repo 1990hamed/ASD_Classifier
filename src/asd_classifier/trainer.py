@@ -94,7 +94,8 @@ class TrainerAndEvaluation:
     def _compute_loss_and_update_acc(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Forward pass: compute cross-entropy loss and update the running accuracy metric."""
         pred = self.model(x)
-        loss = self.loss_fxn(pred, y.long())
+        y = y.long()
+        loss = self.loss_fxn(pred, y)
         self.accuracy.update(pred.softmax(dim=1), y)
         return loss
 
@@ -139,7 +140,7 @@ class TrainerAndEvaluation:
             for inputs, labels in data_loader:
                 inputs, labels = inputs.to(self.device), labels.to(self.device)
                 outputs = self.model(inputs)
-                loss = self.loss_fxn(outputs, labels)
+                loss = self.loss_fxn(outputs, labels.long())
                 total_loss += loss.item() * inputs.size(0)
                 _, preds = torch.max(outputs, 1)
                 all_labels.extend(labels.cpu().numpy())
@@ -167,6 +168,7 @@ class TrainerAndEvaluation:
         self.history["train_acc"].append(train_acc)
         self.history["val_loss"].append(val_loss)
         self.history["val_acc"].append(val_acc)
+        self.history["lr"].append(self.optimizer.param_groups[0]["lr"])
 
         if self.scheduler:
             self.scheduler.step(val_acc)
@@ -184,8 +186,8 @@ class TrainerAndEvaluation:
         the best checkpoint to ``self.save_path``, then restores those weights
         before returning.
         """
-        best_val_loss = float("inf")
-        best_val_acc = 0.0
+        best_val_acc = -1.0
+        saved = False
 
         for epoch in range(self.model.num_epochs):
             self.model.train()
@@ -197,15 +199,17 @@ class TrainerAndEvaluation:
 
             self._log_metrics(epoch + 1, train_loss, train_acc, val_loss, val_acc)
 
+            # Fitness is best val accuracy, so checkpoint on val-acc improvement.
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                torch.save(self.model.state_dict(), self.save_path)
+                saved = True
+
             if self.early_stopping(self.model, val_loss):
                 break
 
-            if val_loss < best_val_loss and val_acc > best_val_acc:
-                best_val_loss = val_loss
-                best_val_acc = val_acc
-                torch.save(self.model.state_dict(), self.save_path)
-
-        self.model.load_state_dict(torch.load(self.save_path, weights_only=True))
+        if saved:
+            self.model.load_state_dict(torch.load(self.save_path, weights_only=True))
         return self.history
 
     def validation(self) -> dict:

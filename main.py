@@ -89,9 +89,16 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
     individual = [control_genes, fc_genes]
 
     model = GoogleNet(individual)
-    model.load_state_dict(
-        torch.load(BEST_MODEL_DIR / "best_model.pth", weights_only=True)
-    )
+    # strict=False tolerates the unused GoogLeNet aux-head keys (aux1/aux2)
+    # that may be present in checkpoints saved before aux_logits was disabled.
+    state_dict = torch.load(BEST_MODEL_DIR / "best_model.pth", weights_only=True)
+    missing, _ = model.load_state_dict(state_dict, strict=False)
+    fc_missing = [k for k in missing if k.startswith("fc_blocks")]
+    if fc_missing:
+        raise RuntimeError(
+            f"Saved weights are missing FC-head parameters: {fc_missing}. "
+            "The saved architecture does not match best_individual_details.csv."
+        )
 
     trainer = TrainerAndEvaluation(model, train_loader, val_loader, test_loader)
 
@@ -104,7 +111,7 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
     }
 
     plot_training_history(history, save_path=BEST_MODEL_DIR / "training_history.png")
-    acc, loss = evaluation(model, trainer)
+    acc, loss = evaluation(model, trainer, save_dir=BEST_MODEL_DIR)
     print(f"Test accuracy: {acc:.4f}  Test loss: {loss:.4f}")
 
 
