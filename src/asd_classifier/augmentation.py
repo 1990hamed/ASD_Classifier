@@ -35,7 +35,7 @@ _rng = np.random.default_rng(42)
 
 _augmentations = A.Compose([
     A.HorizontalFlip(p=1.0),
-    A.Rotate(limit=(-45, 45), border_mode=cv2.BORDER_CONSTANT, p=1.0),
+    A.Rotate(angle_range=(-45, 45), border_mode=cv2.BORDER_CONSTANT, p=1.0),
     A.Affine(
         translate_percent=(-0.15, 0.15),
         shear=(-10, 10),
