@@ -1,0 +1,26 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Data
+data/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Notebook metadata
+*.ipynb
+
+# Checkpoints and logs
+checkpoints/
+logs/
+
+# Ruff
+.ruff_cache
